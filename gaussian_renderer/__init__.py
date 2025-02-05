@@ -77,6 +77,7 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
         scales = pc._scaling
         rotations = pc._rotation
     deformation_point = pc._deformation_table
+
     if "coarse" in stage:
         means3D_final, scales_final, rotations_final, opacity_final, shs_final = means3D, scales, rotations, opacity, shs
     elif "fine" in stage:
@@ -117,6 +118,15 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
 
     # Rasterize visible Gaussians to image, obtain their radii (on screen). 
     # time3 = get_time()
+    # rendered_image, radii, depth, alpha = rasterizer(
+    #     means3D = means3D_final,
+    #     means2D = means2D,
+    #     shs = shs_final,
+    #     colors_precomp = colors_precomp,
+    #     opacities = opacity,
+    #     scales = scales_final,
+    #     rotations = rotations_final,
+    #     cov3D_precomp = cov3D_precomp)
     rendered_image, radii, depth = rasterizer(
         means3D = means3D_final,
         means2D = means2D,
@@ -126,6 +136,7 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
         scales = scales_final,
         rotations = rotations_final,
         cov3D_precomp = cov3D_precomp)
+    
     # time4 = get_time()
     # print("rasterization:",time4-time3)
     # breakpoint()

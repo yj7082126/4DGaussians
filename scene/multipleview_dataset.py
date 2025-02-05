@@ -17,9 +17,10 @@ class multipleview_dataset(Dataset):
         cam_folder,
         split
     ):
-        self.focal = [cam_intrinsics[1].params[0], cam_intrinsics[1].params[0]]
-        height=cam_intrinsics[1].height
-        width=cam_intrinsics[1].width
+        key = list(cam_intrinsics.keys())[0]
+        self.focal = [cam_intrinsics[key].params[0], cam_intrinsics[key].params[0]]
+        height=cam_intrinsics[key].height
+        width=cam_intrinsics[key].width
         self.FovY = focal2fov(self.focal[0], height)
         self.FovX = focal2fov(self.focal[0], width)
         self.transform = T.ToTensor()
@@ -39,8 +40,8 @@ class multipleview_dataset(Dataset):
             R = np.transpose(qvec2rotmat(extr.qvec))
             T = np.array(extr.tvec)
 
-            number = os.path.basename(extr.name)[5:-4]
-            images_folder=os.path.join(cam_folder,"cam"+number.zfill(2))
+            number = int(os.path.basename(extr.name)[5:-4])
+            images_folder=os.path.join(cam_folder,f"cam{number:02d}")
 
             image_range=range(image_length)
             if split=="test":
@@ -91,5 +92,66 @@ class multipleview_dataset(Dataset):
         img = Image.open(self.image_paths[index])
         img = self.transform(img)
         return img, self.image_poses[index], self.image_times[index]
+    def load_pose(self,index):
+        return self.image_poses[index]
+    
+
+class multipleview_dataset_kubric(Dataset):
+    def __init__(
+        self,
+        cam_extrinsics,
+        cam_intrinsics,
+        image_folder,
+        split,
+        cam_ids = [],
+        image_length = 60, 
+        factor=4
+    ):
+        key = list(cam_intrinsics.keys())[0]
+        self.focal = [cam_intrinsics[key].params[0], cam_intrinsics[key].params[0]]
+        height=cam_intrinsics[key].height
+        width=cam_intrinsics[key].width
+        self.FovY = focal2fov(self.focal[0], height)
+        self.FovX = focal2fov(self.focal[0], width)
+        self.transform = T.ToTensor()
+        self.image_paths, self.image_poses, self.image_times= self.load_images_path(
+            image_folder, cam_extrinsics, split, cam_ids=cam_ids, 
+            image_length=image_length, factor=factor)
+
+    def load_images_path(self, image_folder, cam_extrinsics, split="train", cam_ids=[], image_length = 60, factor=4):
+        image_range = list(range(0, image_length, factor)) if split == "train" else list(range(0, image_length, factor*5))
+
+        image_paths, image_poses, image_times = [], [], []
+        if len(cam_ids) > 0:
+            cam_extrinsics = {k:v for k,v in cam_extrinsics.items() if k in cam_ids}
+            cam_names = ', '.join([v.name for k,v in cam_extrinsics.items()])
+            print(f"Using Camera {cam_names}") 
+        for idx, key in enumerate(cam_extrinsics):
+            extr = cam_extrinsics[key]
+            R = np.transpose(qvec2rotmat(extr.qvec))
+            T = np.array(extr.tvec)
+
+            image_path_0 = os.path.join(image_folder, extr.name)
+            for time in image_range:
+                image_path = os.path.join(
+                    os.path.dirname(image_path_0), 
+                    os.path.basename(image_path_0).replace(
+                        "rgba_00000.png", f"rgba_{time:05d}.png"
+                    )
+                )
+                image_paths.append(image_path)
+                image_poses.append((R,T))
+                image_times.append(float(time/image_length))
+
+        return image_paths, image_poses, image_times
+        
+    def __len__(self):
+        return len(self.image_paths)
+    
+    def __getitem__(self, index):
+        img = Image.open(self.image_paths[index])
+        img = self.transform(img)
+        return img, self.image_poses[index], self.image_times[index]
+    
     def load_pose(self,index):
         return self.image_poses[index]

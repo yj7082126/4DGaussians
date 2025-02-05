@@ -5,8 +5,6 @@ import torch.nn.functional as torch_F
 import collections
 from easydict import EasyDict as edict
 
-import util
-from util import log,debug
 
 class Pose():
     """

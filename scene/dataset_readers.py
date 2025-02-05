@@ -632,11 +632,54 @@ def readMultipleViewinfos(datadir,llffhold=8):
                            ply_path=ply_path)
     return scene_info
 
+def readMultipleViewKubricinfos(datadir,llffhold=8,cam_key='_v4',image_length=60,factor=4):
+
+    cameras_extrinsic_file = os.path.join(datadir, "sparse/0/images.bin")
+    cameras_intrinsic_file = os.path.join(datadir, "sparse/0/cameras.bin")
+    cam_extrinsics = read_extrinsics_binary(cameras_extrinsic_file)
+    cam_intrinsics = read_intrinsics_binary(cameras_intrinsic_file)
+    cam_dict = {k:v.name for k,v in cam_extrinsics.items()}
+    cam_ids = [k for k,v in cam_dict.items() if cam_key in v]
+
+    from scene.multipleview_dataset import multipleview_dataset_kubric
+    train_cam_infos = multipleview_dataset_kubric(
+        cam_extrinsics=cam_extrinsics, cam_intrinsics=cam_intrinsics, 
+        image_folder=os.path.join(datadir, "../images"),split="train",cam_ids=cam_ids,
+        image_length=image_length,factor=factor
+    )
+    test_cam_infos = multipleview_dataset_kubric(
+        cam_extrinsics=cam_extrinsics, cam_intrinsics=cam_intrinsics, 
+        image_folder=os.path.join(datadir, "../images"),split="test",
+        image_length=image_length,factor=factor
+    )
+
+    total_cam_infos = multipleview_dataset_kubric(
+        cam_extrinsics=cam_extrinsics, cam_intrinsics=cam_intrinsics, 
+        image_folder=os.path.join(datadir, "../images"), split="train",
+        image_length=image_length,factor=factor
+    )
+    total_cam_infos_ = format_infos(total_cam_infos,"train")
+    nerf_normalization = getNerfppNorm(total_cam_infos_)
+
+    ply_path = os.path.join(datadir, "points3D_multipleview.ply")
+    pcd = fetchPly(ply_path)
+        
+    scene_info = SceneInfo(point_cloud=pcd,
+                           train_cameras=train_cam_infos,
+                           test_cameras=test_cam_infos,
+                        #    video_cameras=test_cam_infos.video_cam_infos,
+                           video_cameras=None,
+                           maxtime=0,
+                           nerf_normalization=nerf_normalization,
+                           ply_path=ply_path)
+    return scene_info
+
 sceneLoadTypeCallbacks = {
     "Colmap": readColmapSceneInfo,
     "Blender" : readNerfSyntheticInfo,
     "dynerf" : readdynerfInfo,
     "nerfies": readHyperDataInfos,  # NeRFies & HyperNeRF dataset proposed by [https://github.com/google/hypernerf/releases/tag/v0.1]
     "PanopticSports" : readPanopticSportsinfos,
-    "MultipleView": readMultipleViewinfos
+    "MultipleView": readMultipleViewinfos,
+    "Kubric" : readMultipleViewKubricinfos
 }

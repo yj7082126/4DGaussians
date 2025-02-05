@@ -42,7 +42,14 @@ class Scene:
         self.train_cameras = {}
         self.test_cameras = {}
         self.video_cameras = {}
-        if os.path.exists(os.path.join(args.source_path, "sparse")):
+        print(args.data_type)
+        if args.data_type == 'Kubric':
+            scene_info = sceneLoadTypeCallbacks["Kubric"](args.source_path, cam_key='_v4', image_length=60, factor=4)
+            dataset_type="Kubric"
+        elif args.data_type == 'ParallelDomain':
+            scene_info = sceneLoadTypeCallbacks["Kubric"](args.source_path, cam_key='yaw-0', image_length=50, factor=2)
+            dataset_type="Kubric"            
+        elif os.path.exists(os.path.join(args.source_path, "sparse")):
             scene_info = sceneLoadTypeCallbacks["Colmap"](args.source_path, args.images, args.eval, args.llffhold)
             dataset_type="colmap"
         elif os.path.exists(os.path.join(args.source_path, "transforms_train.json")):
@@ -101,6 +108,7 @@ class Scene:
             point_cloud_path = os.path.join(self.model_path, "point_cloud/iteration_{}".format(iteration))
         self.gaussians.save_ply(os.path.join(point_cloud_path, "point_cloud.ply"))
         self.gaussians.save_deformation(point_cloud_path)
+        
     def getTrainCameras(self, scale=1.0):
         return self.train_camera
 

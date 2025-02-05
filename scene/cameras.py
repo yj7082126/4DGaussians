@@ -53,8 +53,8 @@ class Camera(nn.Module):
         self.zfar = 100.0
         self.znear = 0.01
 
-        self.trans = trans
         self.scale = scale
+        self.trans = trans
 
         self.world_view_transform = torch.tensor(getWorld2View2(R, T, trans, scale)).transpose(0, 1)
         # .cuda()
@@ -62,6 +62,21 @@ class Camera(nn.Module):
         # .cuda()
         self.full_proj_transform = (self.world_view_transform.unsqueeze(0).bmm(self.projection_matrix.unsqueeze(0))).squeeze(0)
         self.camera_center = self.world_view_transform.inverse()[3, :3]
+
+    def __repr__(self):
+        return f"""
+Camera:
+    Image Name (UID) (COLMAP ID) : {self.image_name} ({self.uid}) ({self.colmap_id})
+    Image Size : (W: {self.image_width} H : {self.image_height})
+    FoV: (x: {self.FoVx}, y : {self.FoVy})
+    R : {self.R}
+    T : {self.T}
+    Znear / Zfar : {self.znear} / {self.zfar}
+    trans / scale : {self.trans} / {self.scale}
+    ViewMat : {self.world_view_transform.numpy()}
+    ProjMat : {self.full_proj_transform.numpy()}
+    Campose : {self.camera_center.numpy()}
+"""
 
 class MiniCam:
     def __init__(self, width, height, fovy, fovx, znear, zfar, world_view_transform, full_proj_transform, time):

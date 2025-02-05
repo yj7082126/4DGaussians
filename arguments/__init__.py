@@ -54,10 +54,11 @@ class ModelParams(ParamGroup):
         self._white_background = True
         self.data_device = "cuda"
         self.eval = True
-        self.render_process=False
+        self.render_process = True
         self.add_points=False
         self.extension=".png"
         self.llffhold=8
+        self.data_type = "" #[None, 'Kubric', 'ParallelDomain']
         super().__init__(parser, "Loading Parameters", sentinel)
 
     def extract(self, args):
